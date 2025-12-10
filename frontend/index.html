@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Fargate Practice App</title>
+    </head>
+
+    <body>
+        <h2>Check Your Age or Day of Birth</h2>
+        <input id="dob" type="date" />
+
+        <button onclick="getAge()">Get Age</button>
+        <button onclick="getDay()">Get Day of Birth</button>
+
+
+        <h3>Result:</h3>
+        <pre id="result"></pre>
+
+
+        <script>
+
+            async function getAge() {
+
+                // Fetch the date of birth from input
+                const dob = document.getElementById('dob').value;
+
+                // Call the age service with the date of birth
+                const res = await fetch('http://dob-app-eu-west-1-alb-1498888882.eu-west-1.elb.amazonaws.com/age?dob=' + dob);
+
+                // Display the result in the result pre element
+                document.getElementById('result').innerText = await res.text();
+            }
+
+
+            async function getDay() {
+
+            // Fetch the date of birth from input
+            const dob = document.getElementById('dob').value;
+
+            // Call the day service with the date of birth
+            const res = await fetch('http://dob-app-eu-west-1-alb-1498888882.eu-west-1.elb.amazonaws.com/day?dob=' + dob);
+
+            // Display the result in the result pre element
+            document.getElementById('result').innerText = await res.text();
+            }
+
+        </script>
+    </body>
+</html>
