@@ -19,7 +19,7 @@ def get_age():
     age = today.year - birthdate.year - ((today.month, today.day) < (birthdate.month, birthdate.day))
 
 
-    return f"Your age is {age} years."
+    return f"Your age is {age} years. Working workflow!", 200
 
 
 @app.route('/health', methods=['GET'])
