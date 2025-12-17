@@ -9,7 +9,7 @@ WORKDIR /day
 
 
 # Copy requirements file into /app
-COPY requirements.txt .
+COPY ../requirements.txt .
 
 
 # Install python dependencies
@@ -20,9 +20,9 @@ RUN pip install -r requirements.txt
 COPY . .
 
 
-# Document for inform whoever using this Dockerfile, this app is listening to port 80
+# Document to inform whoever using this Dockerfile, this app is listening to port 80
 EXPOSE 80
 
 
 # Command to run the application
-CMD ["python", "day_service.py"]
+CMD ["python", "day.py"]
