@@ -28,17 +28,15 @@ name: Deploy to Amazon ECS
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main  # Trigger deployment only on pushes to the main branch
 
 env:
   AWS_REGION: eu-west-1                   # set this to your preferred AWS region, e.g. us-west-1
   ECR_REPOSITORY: dob-ci-cd/age-service           # set this to your Amazon ECR repository name
   ECS_SERVICE: dob-app-ci-cd-age-service-service-dkgrsci4                 # set this to your Amazon ECS service name
   ECS_CLUSTER: DOB-CI-CD                # set this to your Amazon ECS cluster name
-  ECS_TASK_DEFINITION: age-service/age-task-def.json # set this to the path to your Amazon ECS task definition
-                                               # file, e.g. .aws/task-definition.json
-  CONTAINER_NAME: dob-app-ci-cd-age-service-c1           # set this to the name of the container in the
-                                               # containerDefinitions section of your task definition
+  CONTAINER_NAME: dob-app-ci-cd-age-service-c1           # set this to the name of the container in the containerDefinitions section of your task definition
 
 
 defaults:
@@ -53,12 +51,15 @@ jobs:
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    environment: production
+    # environment: production
 
     steps:
+
+      # Step 1: Check out the repository
     - name: Checkout
       uses: actions/checkout@v4
 
+      # Step 2: Configure AWS CLI credentials
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -66,6 +67,20 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
+
+    #   # Step 2: Configure AWS CLI
+    # - name: Configure AWS CLI
+    #   env:
+    #     AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    #     AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    #     AWS_REGION: ${{ env.AWS_REGION }}
+    #   run: |
+    #     aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+    #     aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+    #     aws configure set region $AWS_REGION
+
+
+      # Step 3: Login to Amazon ECR, build and push the Docker image,
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
@@ -80,21 +95,34 @@ jobs:
         # push it to ECR so that it can
         # be deployed to ECS.
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+        echo "image1=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG, image2=$ECR_REGISTRY/$ECR_REPOSITORY:latest" >> $GITHUB_OUTPUT
 
-    - name: Fill in the new image ID in the Amazon ECS task definition
-      id: task-def
-      uses: aws-actions/amazon-ecs-render-task-definition@v1
-      with:
-        task-definition: ${{ env.ECS_TASK_DEFINITION }}
-        container-name: ${{ env.CONTAINER_NAME }}
-        image: ${{ steps.build-image.outputs.image }}
 
-    - name: Deploy Amazon ECS task definition
-      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-      with:
-        task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: ${{ env.ECS_SERVICE }}
-        cluster: ${{ env.ECS_CLUSTER }}
-        wait-for-service-stability: true
+      # Step 4: Force ECS to Use Latest Image Without Registering a New Task Definition
+    - name: Force ECS Service to Use Latest Image
+      env:
+        AWS_REGION: ${{ env.AWS_REGION }}
+        ECS_CLUSTER: ${{ env.ECS_CLUSTER }}   #Change to Cluster name
+        ECS_SERVICE: ${{ env.ECS_SERVICE }}   #Change to Service name
+      run: |
+        aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --force-new-deployment --region $AWS_REGION
+
+
+
+    # - name: Fill in the new image ID in the Amazon ECS task definition
+    #   id: task-def
+    #   uses: aws-actions/amazon-ecs-render-task-definition@v1
+    #   with:
+    #     task-definition: ${{ env.ECS_TASK_DEFINITION }}
+    #     container-name: ${{ env.CONTAINER_NAME }}
+    #     image: ${{ steps.build-image.outputs.image }}
+
+    # - name: Deploy Amazon ECS task definition
+    #   uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+    #   with:
+    #     task-definition: ${{ steps.task-def.outputs.task-definition }}
+    #     service: ${{ env.ECS_SERVICE }}
+    #     cluster: ${{ env.ECS_CLUSTER }}
+    #     wait-for-service-stability: true

@@ -25,4 +25,4 @@ EXPOSE 80
 
 
 # Command to run the application
-CMD ["python", "age_service.py"]
+CMD ["python", "age.py"]
